@@ -1,0 +1,19 @@
+#!/bin/bash
+
+echo "rosgoto v0.4"
+echo "Author: Aleksandar Vladimirov Atanasov"
+echo "Description:Finds the path for a given ROS package using rospack and changes to its directory"
+echo "Note: Complete  the tutorial for setting the ROS environment or at least make sure rospack is added to PATH"
+
+# Note: rospack returns an elegant error message so there is no need to add something else when the if-statement fails
+ROS_PKG_PATH=`rospack find $1`
+
+# Check if the last command (here: rospack find ros_package) returned an error
+if [ $? -ne 0 ]
+then
+    exit 1
+else
+    echo "Package found"
+    cd $ROS_PKG_PATH
+    exec bash
+fi
