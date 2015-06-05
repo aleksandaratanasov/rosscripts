@@ -6,3 +6,4 @@ Contains various useful scripts that are to be used with the Robot Operating Sys
 
 For now following scripts are available and more will be added in the future:
  * **rosgoto** - this scripts combines the **rospack find** command along with **cd** in order to change to a given package's directory if package exists
+ * **catkin_create_pkg_friendly** - this is a more extensive script, which offers a task-oriented (in a more descriptive and understandable form) approach towards package creation using the **catkin_create_pkg** command
