@@ -1,17 +1,35 @@
 #!/bin/bash
-
-# Errors
-errorSelection="Unknown selection"
-errorTest="Test test test test"
-function err {
-	echo "Error: $*"
-}
-
 echo "catkin_create_pkg_friendly v0.1"
 echo "Author: Aleksandar Vladimirov Atanasov"
 echo "Description: creates a more userfriendly approach when creating ROS packages using catkin_create_pkg"
 echo "Note: Complete  the tutorial for setting the ROS environment or at least make sure rospack is added to PATH"
 
+# Errors
+errorSelection="Unknown selection"
+errorTest="Test test test test"
+function err {
+  echo "Error: $*"
+}
+
+function arg_present () {
+  local array="$1[@]"
+  local seeking=$2
+  local in=1
+  for element in "${!array}"
+  do
+    if [[ $element == $seeking ]]
+    then
+      in=0
+      break
+    fi
+  done
+  return $in
+}
+
+function arg_display () {
+  local -n args=$1
+  echo "${args[*]}"
+}
 
 #MENU 1:	language - 1)c++, 2)python, 3)java, 4)javascript
 #	choice(s): 1,2 (single or multiple choices possible)
@@ -27,78 +45,144 @@ pkgName=""	# contains the name of the package
 pkgLangs=()	# contains all the languages the package will support
 pkgTasks=()	# contains all the dependencies which are required to fulfill the selected tasks
 
+echo "Note: If you want to display the current selection menu you are in, simply press enter when asked to select an item from it"
 echo "Select one of the following: "
 options=("Name" "Languages" "Tasks" "Help" "Quit")
 select opt in "${options[@]}"
 do
-	case $opt in
-		"Name")
-			echo "Before choosing a name for your package please read the naming conventions for ROS packages: http://wiki.ros.org/ROS/Patterns/Conventions#Packages"
-			if [ -z $pkgName ] 
-			then
-				echo "Package name: "
-				read pkgName
-			else
-				echo "Your package already has a name. Do you want to append something to it? ([y]=append, [n]=replace) "
-				read choiceReplace
-				if [ "$choiceReplace" == "y"]
-				then
-					read pkgNameAppend
-					pkgName+=pkgNameAppend
-				elif [ "$choiceReplace" == "n" ]
-				then
-					read pkgName
-				else
-					err $errorSelection
-				fi
-			fi
-			;;
-		"Languages")
-			if [ ${#pkgTasks[@]} -eq 0 ]
-			then
-				echo "Consider choosing the tasks you want your package to do since some tasks maybe requiring a specific language"
-			fi
-			langOptions=("C++" "Python" "Java" "JavaScript" "C#")
-			select lang in "${langOptions[@]}"
-			do
-				case $lang in
-					"C++")
-					;;
-					"Python")
-					;;
-					"Java")
-					;;
-					"Javascript")
-					;;
-					"C#")
-					;;
-					*)
-						err $errorSelection
-					;;
-				esac
-			done
-			# parse selection
-			;;
-		"Tasks")
-			echo "TODO"
-			# display a set of tasks each bound to one or more ROS dependencies
-			# if dependencies are not met, offer the user the choice to install (if he/she chooses not to do so, remove task along with dependencies)
-			;;
-		"Create")
-			echo "TODO"
-			# check if everything that is required for the package creation is present
-			;;
-		"Help")
-			echo "TODO"
-			;;
-		"Quit")
-			echo "Exiting without creating a new package..."
-			exit 0
-			;;
-		*)
-			err $errorSelection
-			;;
-	esac
+  case $opt in
+    "Name")
+      echo "Before choosing a name for your package please read the naming conventions for ROS packages: http://wiki.ros.org/ROS/Patterns/Conventions#Packages"
+      
+      if [[ -z $pkgName ]] 
+      then
+        echo "Package name: "
+        read pkgName
+      else
+        echo "Your package already has a name. Do you want to append something to it? ([y]=append, [n]=replace) "
+        read choiceReplace
+        
+        if "$choiceReplace" == "y"
+        then
+          read pkgNameAppend
+          pkgName+=pkgNameAppend
+        elif "$choiceReplace" == "n"
+        then
+          read pkgName
+        else
+          err $errorSelection
+        fi
+        
+      fi
+      ;;
+    "Tasks")
+      echo "TODO"
+      # display a set of tasks each bound to one or more ROS dependencies
+      # if dependencies are not met, offer the user the choice to install (if he/she chooses not to do so, remove task along with dependencies)
+      ;;
+    "Languages")
+      if [[ ${#pkgTasks[@]} -eq 0 ]]
+      then
+        echo "Consider choosing the tasks you want your package to do since some tasks maybe requiring a specific language"
+      fi
+      
+      declare -a langOptions=("C++" "Python" "Java" "Javascript" "C#" "Remove" "Accept" "Cancel")
+      select lang in "${langOptions[@]}"
+      do
+        case $lang in
+          "C++")
+            if ! arg_present pkgLangs "C++"
+            then
+              echo "Added C++ support"
+              pkgLangs+=("C++")
+            fi
+            arg_display pkgLangs
+          ;;
+          "Python")
+            if ! arg_present pkgLangs "Python"
+            then
+              echo "Added Python support"
+              pkgLangs+=("Python")
+            fi
+            arg_display pkgLangs
+          ;;
+          "Java")
+            if ! arg_present pkgLangs "Java"
+            then
+              echo "Added Java support"
+              pkgLangs+=("Java")
+            fi
+            arg_display pkgLangs
+          ;;
+          "Javascript")
+            if ! arg_present pkgLangs "Javascript"
+            then
+              echo "Added Javascript support"
+              pkgLangs+=("Javascript")
+            fi
+            arg_display pkgLangs
+          ;;
+          "C#")
+            if ! arg_present pkgLangs "C#"
+            then
+              echo "Added C# support"
+              pkgLangs+=("C#")
+            fi
+            arg_display pkgLangs
+          ;;
+          "Remove")
+            echo "NOT WORKING PROPERLY!!! For some reason only the first if-statement is executed and then we exit the select loop for removing languages"
+            echo "Currently the package will support following languages: "
+            arg_display pkgLangs
+            declare -n pkgLangsBackup=pkgLangs
+            echo "BACKUP: ${pkgLangs[@]}"
+            pkgLangs+=("Accept" "Cancel")
+            select pkgLang in "${pkgLangs[@]}"
+            do
+              if [[ "$pkgLang" -eq "Accept" ]]
+              then
+                echo "Changes have been accepted"
+                pkgLangs=( ${pkgLangs[@]/"Accept"} )
+                pkgLangs=( ${pkgLangs[@]/"Cancel"} )
+                break;
+              elif [[ "$pkgLang" -eq "Cancel" ]]
+              then
+                pkgLangs=pkgLangsBackup
+                break
+              else
+                echo "Removed $pkgLang from supported languages"
+                pkgLangs=( ${pkgLangs[@]/"$pkgLang"} )
+              fi
+            done
+          ;;
+          "Accept")
+            break
+          ;;
+          "Cancel")
+            echo "TODO"
+          ;;
+          *)
+            err $errorSelection
+          ;;
+        esac
+      done
+      # parse selection
+      ;;
+    "Create")
+      echo "TODO"
+      # check if everything that is required for the package creation is present
+    ;;
+    "Help")
+      echo "TODO"
+    ;;
+    "Quit")
+      echo "Exiting without creating a new package..."
+      exit 0
+    ;;
+    *)
+      err $errorSelection
+    ;;
+  esac
 done
 
 #rosargs=()

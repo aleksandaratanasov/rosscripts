@@ -2,8 +2,14 @@
 
 echo "rosgoto v0.4"
 echo "Author: Aleksandar Vladimirov Atanasov"
-echo "Description: Finds the path for a given ROS package using rospack and changes to its directory"
+echo "Description: Finds the path for a given ROS package using rospack and changes to its directory. Input argument is key-sensitive"
 echo "Note: Complete  the tutorial for setting the ROS environment or at least make sure rospack is added to PATH"
+
+if [ "$#" -ne 2 ]
+then
+    echo "Usage: rosgoto <package-name>"
+    exit 1
+fi
 
 # Note: rospack returns an elegant error message so there is no need to add something else when the if-statement fails
 ROS_PKG_PATH=`rospack find $1`
