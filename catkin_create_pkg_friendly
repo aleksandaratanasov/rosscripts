@@ -142,8 +142,9 @@ do
               if [[ "$pkgLang" == "Accept" ]]
               then
                 echo "Changes have been accepted"
-                pkgLangs=( ${pkgLangs[@]/"Accept"} )
-                pkgLangs=( ${pkgLangs[@]/"Cancel"} )
+                # Remove the "Accept" and "Cancel" from the array to reverse it to a semantically correct state (containing languages only!)
+                unset pkgLangs[${#pkgLangs[@]}-1] #pkgLangs=( ${pkgLangs[@]/"Accept"} )
+                unset pkgLangs[${#pkgLangs[@]}-1] #pkgLangs=( ${pkgLangs[@]/"Cancel"} )
                 break
               elif [[ "$pkgLang" == "Cancel" ]]
               then
