@@ -86,7 +86,7 @@ do
         echo "Consider choosing the tasks you want your package to do since some tasks maybe requiring a specific language"
       fi
       
-      declare -a langOptions=("C++" "Python" "Java" "Javascript" "C#" "Remove" "Accept" "Cancel")
+      declare -a langOptions=("C++" "Python" "Java" "JS" "C#" "Remove" "Accept" "Cancel")
       select lang in "${langOptions[@]}"
       do
         case $lang in
@@ -114,11 +114,11 @@ do
             fi
             arg_display pkgLangs
           ;;
-          "Javascript")
-            if ! arg_present pkgLangs "Javascript"
+          "JS")
+            if ! arg_present pkgLangs "JS"
             then
-              echo "Added Javascript support"
-              pkgLangs+=("Javascript")
+              echo "Added JS support"
+              pkgLangs+=("JS")
             fi
             arg_display pkgLangs
           ;;
@@ -139,20 +139,23 @@ do
             pkgLangs+=("Accept" "Cancel")
             select pkgLang in "${pkgLangs[@]}"
             do
-#              if [[ "$pkgLang" -eq "Accept" ]]
-#              then
-#                echo "Changes have been accepted"
-#                pkgLangs=( ${pkgLangs[@]/"Accept"} )
-#                pkgLangs=( ${pkgLangs[@]/"Cancel"} )
-#                break;
-#             elif [[ "$pkgLang" -eq "Cancel" ]]
-#              then
-#                pkgLangs=pkgLangsBackup
-#                break
-#              else
-#               echo "Removed $pkgLang from supported languages"
-#               pkgLangs=( ${pkgLangs[@]/"$pkgLang"} )  # Using only this here removes the selected properly!
-#             fi
+              if [[ "$pkgLang" == "Accept" ]]
+              then
+                echo "Changes have been accepted"
+                pkgLangs=( ${pkgLangs[@]/"Accept"} )
+                pkgLangs=( ${pkgLangs[@]/"Cancel"} )
+                break
+              elif [[ "$pkgLang" == "Cancel" ]]
+              then
+                echo "Changes have been cancelled"
+                pkgLangs=( $pkgLangsBackup )
+                break
+              else
+                echo "Removed $pkgLang from supported languages"
+                pkgLangs=( ${pkgLangs[@]/"$pkgLang"} )  # Using only this here removes the selected properly!
+                echo "New list of supported languages: "
+                arg_display pkgLangs
+              fi
             done
           ;;
           "Accept")
