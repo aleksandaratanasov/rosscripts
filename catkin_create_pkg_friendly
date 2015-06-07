@@ -58,17 +58,20 @@ do
       then
         echo "Package name: "
         read pkgName
+        echo "Package name set to \"$pkgName\""
       else
         echo "Your package already has a name. Do you want to append something to it? ([y]=append, [n]=replace) "
         read choiceReplace
         
-        if "$choiceReplace" == "y"
+        if [[ "$choiceReplace" == "y" ]]
         then
           read pkgNameAppend
-          pkgName+=pkgNameAppend
-        elif "$choiceReplace" == "n"
+          pkgName+=$pkgNameAppend
+          echo "Package name updated to \"$pkgName\""
+        elif [[ "$choiceReplace" == "n" ]]
         then
           read pkgName
+          echo "Package name updated to \"$pkgName\""
         else
           err $errorSelection
         fi
@@ -91,6 +94,7 @@ do
       do
         case $lang in
           "C++")
+            # TODO Adding a language is repetative. Create a function for it and simply call it
             if ! arg_present pkgLangs "C++"
             then
               echo "Added C++ support"
@@ -135,16 +139,16 @@ do
             echo "Currently the package will support following languages: "
             arg_display pkgLangs
             declare -n pkgLangsBackup=pkgLangs
-            echo "BACKUP: ${pkgLangs[@]}"
-            pkgLangs+=("Accept" "Cancel")
-            select pkgLang in "${pkgLangs[@]}"
+            #echo "BACKUP: ${pkgLangs[@]}"
+            #pkgLangs+=("Accept" "Cancel")
+            select pkgLang in "${pkgLangs[@]}" "Accept" "Cancel"
             do
               if [[ "$pkgLang" == "Accept" ]]
               then
                 echo "Changes have been accepted"
                 # Remove the "Accept" and "Cancel" from the array to reverse it to a semantically correct state (containing languages only!)
-                unset pkgLangs[${#pkgLangs[@]}-1] #pkgLangs=( ${pkgLangs[@]/"Accept"} )
-                unset pkgLangs[${#pkgLangs[@]}-1] #pkgLangs=( ${pkgLangs[@]/"Cancel"} )
+                #unset pkgLangs[${#pkgLangs[@]}-1] #pkgLangs=( ${pkgLangs[@]/"Accept"} )
+                #unset pkgLangs[${#pkgLangs[@]}-1] #pkgLangs=( ${pkgLangs[@]/"Cancel"} )
                 break
               elif [[ "$pkgLang" == "Cancel" ]]
               then
@@ -175,6 +179,8 @@ do
     "Create")
       echo "TODO"
       # check if everything that is required for the package creation is present
+      # ...
+      exit 0
     ;;
     "Help")
       echo "TODO"
@@ -188,11 +194,3 @@ do
     ;;
   esac
 done
-
-#rosargs=()
-#rosargs+=("a1")
-#rosargs+=("a2")
-#for arg in "${rosargs[@]}"
-#do
-#	echo $arg
-#done
