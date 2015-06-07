@@ -31,6 +31,14 @@ function arg_display () {
   echo "${args[*]}"
 }
 
+function add_person() {
+  declare -a person
+  person+=("$1")         # person's name
+  person+=("$2")      # email address
+  
+  echo "${person[@]}"
+}
+
 #MENU 1:	language - 1)c++, 2)python, 3)java, 4)javascript
 #	choice(s): 1,2 (single or multiple choices possible)
 #	--> add to an array with args that will be passed onto catkin_create_pkg
@@ -41,48 +49,109 @@ function arg_display () {
 #		if yes continue
 #		else offer installation procedure
 
+# Each of the variables below will be used when generating the package including populating the package.xml file
 pkgName=""	# contains the name of the package
-pkgLangs=()	# contains all the languages the package will support
-pkgTasks=()	# contains all the dependencies which are required to fulfill the selected tasks
+pkgVer=""       # contains the version of the package
+pkgAuthors=()    # contains "pairs" for each author of the package (name,email address)
+pkgMaintainers=() # contains "pairs" for each maintainer of the package (name,email address)
+pkgLicenses=()  # contains all licenses that the package is under
+pkgLangs=()	# contains all the languages the package will support (a language will be converted in a package dependecy)
+pkgTasks=()	# contains all the tasks which the package is supposed to fulfill (a task will be converted in package dependecy(ies))
 
 echo "Note: If you want to display the current selection menu you are in, simply press enter when asked to select an item from it"
 echo "Select one of the following: "
-options=("Name" "Languages" "Tasks" "Help" "Quit")
+options=("Name" "Version" "Description" "Author|Maintainer" "License" "Languages" "Tasks" "View pkg" "Create" "Help" "Quit")
 select opt in "${options[@]}"
 do
   case $opt in
     "Name")
+      pkgNameBackup=$pkgName
       echo "Before choosing a name for your package please read the naming conventions for ROS packages: http://wiki.ros.org/ROS/Patterns/Conventions#Packages"
-      
       if [[ -z $pkgName ]] 
       then
         echo "Package name: "
         read pkgName
         echo "Package name set to \"$pkgName\""
       else
-        echo "Your package already has a name. Do you want to append something to it? ([y]=append, [n]=replace) "
-        read choiceReplace
-        
-        if [[ "$choiceReplace" == "y" ]]
-        then
-          read pkgNameAppend
-          pkgName+=$pkgNameAppend
-          echo "Package name updated to \"$pkgName\""
-        elif [[ "$choiceReplace" == "n" ]]
-        then
-          read pkgName
-          echo "Package name updated to \"$pkgName\""
-        else
-          err $errorSelection
-        fi
-        
+        echo "Your package already has a name \"$pkgName\""
+        nameOptions=("Append" "Replace" "Accept" "Cancel")
+        select opt in "${nameOptions[@]}"
+        do
+          case $opt in
+            "Append")
+              echo "Add to package name $pkgName: "
+              printf %s "$pkgName"
+              read pkgNameAppend
+              pkgName+=$pkgNameAppend
+              echo "Package name set to \"$pkgName\""
+            ;;
+            "Replace")
+              echo "New package: "
+              read pkgName
+              echo "Package name set to \"$pkgName\""
+            ;;
+            "Accept")
+              break
+            ;;
+            "Cancel")
+              pkgName=$pkgNameBackup
+              break
+            ;;
+          esac
+        done
       fi
-      ;;
-    "Tasks")
+      #if [[ -z $pkgName ]] 
+      #then
+      #  echo "Package name: "
+      #  read pkgName
+      #  echo "Package name set to \"$pkgName\""
+      #else
+      #  echo "Your package already has a name (\"$pkgName\"). Do you want to append something to it? ([y]=append, [n]=replace) "
+      #  read choiceReplace
+      #  
+      #  if [[ "$choiceReplace" == "y" ]]
+      #  then
+      #    read pkgNameAppend
+      #    pkgName+=$pkgNameAppend
+      #    echo "Package name updated to \"$pkgName\""
+      #  elif [[ "$choiceReplace" == "n" ]]
+      #  then
+      #    read pkgName
+      #    echo "Package name updated to \"$pkgName\""
+      #  else
+      #    err $errorSelection
+      #  fi 
+      #fi
+    ;;
+    "Version")
+      echo "Enter package version (default: 0.0.1): "
+      read pkgVer
+      if [[ -z $pkgVer ]]
+      then
+        pkgVer="0.0.1"
+      fi
+    ;;
+    "Description")
       echo "TODO"
-      # display a set of tasks each bound to one or more ROS dependencies
-      # if dependencies are not met, offer the user the choice to install (if he/she chooses not to do so, remove task along with dependencies)
-      ;;
+    ;;
+    "Author|Maintainer")
+      echo "TODO"
+      # A list of all authors/maintainers offers the option to edit the information for a specific author/maintainer (Edit, Delete)
+      authmaintOptions=("List authors" "List maintainers" "Add author" "Add maintainer")
+      echo "Name:"
+      read name
+      echo "Email address:"
+      read email
+      # FIXME Creating a person is not working properly when there are spaces in the name
+      pkgAuthors+=(`add_person $name $email`)
+      echo "Authors: `arg_display pkgAuthors`"
+    ;;
+    "License")
+      echo "Although optional it is recommended that you license your package. A package can have multiple licenses depending on the content it includes. An overview of various open source licenses can be seen at https://www.blackducksoftware.com/resources/data/top-20-open-source-licenses"
+      echo "For more information on each license visit its website"
+      
+      # TODO use the same menu structure as language (including the remove menu!)
+    ;;
     "Languages")
       if [[ ${#pkgTasks[@]} -eq 0 ]]
       then
@@ -135,20 +204,16 @@ do
             arg_display pkgLangs
           ;;
           "Remove")
-            echo "NOT WORKING PROPERLY!!! For some reason only the first if-statement is executed and then we exit the select loop for removing languages"
+            #echo "NOT WORKING PROPERLY!!! For some reason only the first if-statement is executed and then we exit the select loop for removing languages"
             echo "Currently the package will support following languages: "
             arg_display pkgLangs
-            declare -n pkgLangsBackup=pkgLangs
+            declare -a pkgLangsBackup="${pkgLangs[@]}"
             #echo "BACKUP: ${pkgLangs[@]}"
-            #pkgLangs+=("Accept" "Cancel")
             select pkgLang in "${pkgLangs[@]}" "Accept" "Cancel"
             do
               if [[ "$pkgLang" == "Accept" ]]
               then
                 echo "Changes have been accepted"
-                # Remove the "Accept" and "Cancel" from the array to reverse it to a semantically correct state (containing languages only!)
-                #unset pkgLangs[${#pkgLangs[@]}-1] #pkgLangs=( ${pkgLangs[@]/"Accept"} )
-                #unset pkgLangs[${#pkgLangs[@]}-1] #pkgLangs=( ${pkgLangs[@]/"Cancel"} )
                 break
               elif [[ "$pkgLang" == "Cancel" ]]
               then
@@ -174,13 +239,22 @@ do
           ;;
         esac
       done
-      # parse selection
-      ;;
+    ;;
+    "Tasks")
+      echo "TODO"
+      # display a set of tasks each bound to one or more ROS dependencies
+      # if dependencies are not met, offer the user the choice to install (if he/she chooses not to do so, remove task along with dependencies)
+    ;;
     "Create")
       echo "TODO"
       # check if everything that is required for the package creation is present
-      # ...
       exit 0
+    ;;
+    "View pkg")
+      echo "Current package settings"
+      echo "------------------------"
+      echo "Name: $pkgName"
+      echo "Language support: `arg_display pkgLangs`"
     ;;
     "Help")
       echo "TODO"
