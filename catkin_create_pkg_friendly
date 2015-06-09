@@ -33,8 +33,15 @@ function arg_display () {
 
 function add_person() {
   declare -a person
-  person+=("$1")         # person's name
-  person+=("$2")      # email address
+  
+  # Split the input parameters in head and tail with tail being the very last argument
+  # This allows using spaces in the name. The email address is not supposed to contain any spaces
+  # so in case a valid email address is given, it should be the last item in the list
+  names=${@:1:$(($# - 1))}
+  email=${@:$#}
+
+  person+="$names " # Adding a trailing space in order to sperarate the name from the email address
+  person+="$email"
   
   echo "${person[@]}"
 }
