@@ -32,13 +32,18 @@ function arg_display () {
 }
 
 function add_person() {
-  declare -a person
+  declare -a person=()
   
   # Split the input parameters in head and tail with tail being the very last argument
   # This allows using spaces in the name. The email address is not supposed to contain any spaces
   # so in case a valid email address is given, it should be the last item in the list
   names=${@:1:$(($# - 1))}
   email=${@:$#}
+  
+  #echo "Name:"
+  #read names
+  #echo "Email address:"
+  #read email
 
   person+="$names " # Adding a trailing space in order to sperarate the name from the email address
   person+="$email"
@@ -57,6 +62,7 @@ function add_person() {
 #		else offer installation procedure
 
 # Each of the variables below will be used when generating the package including populating the package.xml file
+pkgPath=""      # contains the path where the package will be created
 pkgName=""	# contains the name of the package
 pkgVer=""       # contains the version of the package
 pkgAuthors=()    # contains "pairs" for each author of the package (name,email address)
@@ -67,10 +73,77 @@ pkgTasks=()	# contains all the tasks which the package is supposed to fulfill (a
 
 echo "Note: If you want to display the current selection menu you are in, simply press enter when asked to select an item from it"
 echo "Select one of the following: "
-options=("Name" "Version" "Description" "Author|Maintainer" "License" "Languages" "Tasks" "View pkg" "Create" "Help" "Quit")
+options=("ROS Workspace" "Name" "Version" "Description" "Author|Maintainer" "License" "Languages" "Tasks" "View pkg" "Create" "Help" "Quit")
 select opt in "${options[@]}"
 do
   case $opt in
+    "ROS Workspace")
+      #countHomes=`echo "$ROS_PACKAGE_PATH" | grep -o "$HOME" | wc -l`
+      echo "Attempting to detect valid ROS workspaces"
+      if [[ -z "`echo $ROS_PACKAGE_PATH`" ]]
+      then
+        echo "You haven't set the environment variable ROS_PACKAGE_PATH."
+        exit 1
+      fi
+      #elif [[ $countHomes -eq 0 ]] # check if there is any
+      #then
+      #  echo "You haven't added a workspace in $HOME to the environment variable ROS_PACKAGE_PATH."
+      #  exit 1
+      #fi
+      
+      # split the contents of the ROS_PACKAGE_PATH variable and create an array
+      # we use this array to get the workspace where the package will be created (so that we can cd to that directory from anywhere!)
+      OIFS=$IFS
+      IFS=":"
+      possibleRosWsPaths=($ROS_PACKAGE_PATH)
+      validRosWsPaths=() # stores the paths to valid ROS workspaces (contain the .catkin_workspace file)
+      for ((i=0; i<${#possibleRosWsPaths[@]}; ++i))
+      do
+        srcDirPresent="${possibleRosWsPaths[$i]}"
+        # A workspace is also created in the /home of the user as recommended by the ROS documentation
+        # It also has a src directory which holds the packages. The src is at the end of the path of the workspace
+        # We check if those two conditions are met
+        # Remember: the presence of devel and build folders is not mendatory since those appear AFTER catkin_make has been called in the root folder of the workspace
+        if [[ "$srcDirPresent" == *"/home"* && "$srcDirPresent"==*"/src" ]]
+        then
+          srcDirPresent=${srcDirPresent%"src"} # remove the src and append the .catkin_workspace file to the path in order to check if it's present
+          if [[ -e "$srcDirPresent/.catkin_workspace" ]]
+          then
+            echo "\"${possibleRosWsPaths[$i]}\" is a valid ROS workspace"
+            validRosWsPaths+=(${possibleRosWsPaths[$i]})
+          else
+            echo "\"${possibleRosWsPaths[$i]}\" is NOT a valid ROS workspace"
+          fi
+        else
+          echo "\"${possibleRosWsPaths[$i]}\" is NOT a valid ROS workspace"
+        fi
+      done
+      IFS=$OIFS
+      
+      if [[ ${#ArrayName[@]} -eq 0 ]]
+      then
+        echo "Unable to detect any valid ROS workspaces in \"$HOME\". Please specify the path manually:"
+      fi
+      
+      select ws in "${validRosWsPaths[@]}" "Other" "Cancel" $pkgPath
+      do
+        if [[ $ws == "Other" ]] # offer the user a chance to specify a path manually (especially useful if the detection didn't work out)
+        then
+          printf "Enter a path to a valid workspace: "
+          read newWs
+          pkgPath=$newWs
+          echo "Package will be created in $pkgPath"
+        elif [[ $ws == "Cancel" ]]
+        then
+          break
+        else
+          pkgPath=$ws
+          echo "Package will be created in $pkgPath"
+          break
+        fi
+      done
+      #possibleRosWsPaths=$(echo $ROS_PACKAGE_PATH | tr ":" " ")
+    ;;
     "Name")
       pkgNameBackup=$pkgName
       echo "Before choosing a name for your package please read the naming conventions for ROS packages: http://wiki.ros.org/ROS/Patterns/Conventions#Packages"
@@ -145,13 +218,37 @@ do
       echo "TODO"
       # A list of all authors/maintainers offers the option to edit the information for a specific author/maintainer (Edit, Delete)
       authmaintOptions=("List authors" "List maintainers" "Add author" "Add maintainer")
-      echo "Name:"
-      read name
-      echo "Email address:"
-      read email
+      select am in "${authmaintOptions[@]}"
+      do
+        case $am in
+          "List authors")
+            echo "TODO Pretty print authors"
+            echo "Authors: `arg_display pkgAuthors`"
+          ;;
+          "List maintainers")
+            echo "TODO Pretty print maintainers"
+            echo "Maintainers: `arg_display pkgMaintainers`"
+          ;;
+          "Add author")
+            #pkgAuthors+=("`add_person`")
+            printf "Name: "
+            read name
+            printf "Email address: "
+            read email
+            pkgAuthors+=(`add_person $name $email`)
+          ;;
+          "Add maintainer")
+            printf "Name: "
+            read name
+            printf "Email address: "
+            read email
+            pkgAuthors+=(`add_person $name $email`)
+          ;;
       # FIXME Creating a person is not working properly when there are spaces in the name
-      pkgAuthors+=(`add_person $name $email`)
-      echo "Authors: `arg_display pkgAuthors`"
+      #pkgAuthors+=(`add_person $name $email`)
+      #echo "Authors: `arg_display pkgAuthors`"
+        esac
+      done
     ;;
     "License")
       echo "Although optional it is recommended that you license your package. A package can have multiple licenses depending on the content it includes. An overview of various open source licenses can be seen at https://www.blackducksoftware.com/resources/data/top-20-open-source-licenses"
@@ -262,6 +359,7 @@ do
       echo "------------------------"
       echo "Name: $pkgName"
       echo "Language support: `arg_display pkgLangs`"
+      echo "Path: $pkgPath"
     ;;
     "Help")
       echo "TODO"
