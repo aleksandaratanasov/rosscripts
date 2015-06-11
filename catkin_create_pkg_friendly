@@ -89,6 +89,9 @@ select opt in "${options[@]}"
 do
   case $opt in
     "ROS Workspace")
+      # FIXME Right now there is a contradiction - ROSWS/src is displayed as a valid workspace but it is not since src is a
+      # subfolder in the workspace. It would be much better if all /src are removed from the paths and added when needed
+      pkgPathBackup=$pkgPath
       #countHomes=`echo "$ROS_PACKAGE_PATH" | grep -o "$HOME" | wc -l`
       echo "Attempting to detect valid ROS workspaces"
       if [[ -z "`echo $ROS_PACKAGE_PATH`" ]]
@@ -130,29 +133,84 @@ do
         fi
       done
       IFS=$OIFS
-      
-      if [[ ${#ArrayName[@]} -eq 0 ]]
+
+      skipWsChoice=0
+      if [[ ${#validRosWsPaths[@]} -eq 0 ]] # change this back to 0 so that it work; for now it's just for testing
       then
-        echo "Unable to detect any valid ROS workspaces in \"$HOME\". Please specify the path manually:"
+        echo "Unable to detect any valid ROS workspaces in \"$HOME\". Please specify the path manually"
+        echo "Example: $HOME/catkin_ws"
+        printf "Enter workspace root directory: "
+        read tmpPkgPath
+        
+        if ! [[ -e "$tmpPkgPath/.catkin_workspace" && -d "$tmpPkgPath/src" ]]
+        then
+          echo "It appears that you have selected a path which is not a valid (missing \".catkin_workspace\" file and \"src\" subdirectory). Accept anyway?"
+          select confirm in "Accept" "Cancel"
+          do
+            case $confirm in
+              "Accept")
+                skipWsChoice=1
+                pkgPath=$tmpPkgPath
+                echo "Package will be created in $pkgPath"
+                break
+              ;;
+              "Cancel")
+                pkgPath=$pkgPathBackup
+                break
+              ;;
+            esac
+          done
+        fi
       fi
       
-      select ws in "${validRosWsPaths[@]}" "Other" "Cancel" $pkgPath
-      do
-        if [[ $ws == "Other" ]] # offer the user a chance to specify a path manually (especially useful if the detection didn't work out)
-        then
-          printf "Enter a path to a valid workspace: "
-          read newWs
-          pkgPath=$newWs
-          echo "Package will be created in $pkgPath"
-        elif [[ $ws == "Cancel" ]]
-        then
-          break
-        else
-          pkgPath=$ws
-          echo "Package will be created in $pkgPath"
-          break
-        fi
-      done
+      if [[ "$skipWsChoice" -eq "0" ]]
+      then
+        select ws in "${validRosWsPaths[@]}" $pkgPath "Other" "Accept" "Cancel"
+        do
+          if [[ $ws == "Other" ]] # offer the user a chance to specify a path manually (especially useful if the detection didn't work out)
+          then
+            printf "Enter a path to a valid workspace: "
+            read tmpPkgPath
+            
+            if ! [[ -e "$tmpPkgPath/.catkin_workspace" && -d "$tmpPkgPath/src" ]]
+            then
+              echo "It appears that you have selected a path which is not a valid (missing \".catkin_workspace\" file and \"src\" subdirectory). Accept anyway?"
+              select confirm in "Accept" "Cancel"
+              do
+                case $confirm in
+                  "Accept")
+                    skipWsChoice=1
+                    pkgPath=$tmpPkgPath
+                    echo "Package will be created in $pkgPath"
+                    break
+                  ;;
+                  "Cancel")
+                    pkgPath=$pkgPathBackup
+                    break
+                  ;;
+                esac
+              done
+            else
+              pkgPath=$tmpPkgPath
+              echo "Package will be created in $pkgPath"
+            fi
+          elif [[ $ws == "Accept" ]]
+          then
+            if ! [[ -z "$pkgPath" ]]
+            then
+              echo "Package will be created in $pkgPath"
+            fi
+            break
+          elif [[ $ws == "Cancel" ]]
+          then
+            pkgPath=$pkgPathBackup
+            break
+          else
+            pkgPath=$ws
+            echo "Package will be created in $pkgPath"
+          fi
+        done
+      fi
       #possibleRosWsPaths=$(echo $ROS_PACKAGE_PATH | tr ":" " ")
     ;;
     "Name")
