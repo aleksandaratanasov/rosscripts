@@ -1,12 +1,23 @@
 #!/bin/bash
-echo "catkin_create_pkg_friendly v0.1"
+rosscriptVer="0.2"
+echo "catkin_create_pkg_friendly v$rosscriptVer"
 echo "Author: Aleksandar Vladimirov Atanasov"
 echo "Description: creates a more userfriendly approach when creating ROS packages using catkin_create_pkg"
 echo "Note: Complete  the tutorial for setting the ROS environment or at least make sure rospack is added to PATH"
+echo "The numbering of the menu items is the suggested order of filling the information for the package."
+
+# Text formatting
+bold=$(tput bold)
+normal=$(tput sgr0)
+# Example: echo "this is ${bold}bold${normal} and this isn't"
 
 # Errors
+# Critical errors
+errorMissingName="Package has no name"
+errorMissingPath="Package has no assigned ROS workspace"
+# Non critical errors
 errorSelection="Unknown selection"
-errorTest="Test test test test"
+errorMissingLangs="Package has no language support"
 function err {
   echo "Error: $*"
 }
@@ -73,7 +84,7 @@ pkgTasks=()	# contains all the tasks which the package is supposed to fulfill (a
 
 echo "Note: If you want to display the current selection menu you are in, simply press enter when asked to select an item from it"
 echo "Select one of the following: "
-options=("ROS Workspace" "Name" "Version" "Description" "Author|Maintainer" "License" "Languages" "Tasks" "View pkg" "Create" "Help" "Quit")
+options=("ROS Workspace" "Name" "Version" "Description" "Author|Maintainer" "License" "Languages" "Tasks" "View pkg" "Create" "About" "Quit")
 select opt in "${options[@]}"
 do
   case $opt in
@@ -216,6 +227,7 @@ do
     ;;
     "Author|Maintainer")
       echo "TODO"
+      echo "Adding an author(s) and maintainer(s) is optional but recommended in case a user wants to contact the creator of the package or the person who makes sure it is up to date"
       # A list of all authors/maintainers offers the option to edit the information for a specific author/maintainer (Edit, Delete)
       authmaintOptions=("List authors" "List maintainers" "Add author" "Add maintainer")
       select am in "${authmaintOptions[@]}"
@@ -352,7 +364,43 @@ do
     "Create")
       echo "TODO"
       # check if everything that is required for the package creation is present
-      exit 0
+      # if [[ -z $pkgPath]] ...
+      # ...
+      
+      echo "Checking if required information for package generation is present"
+      errorsPresent=0
+      
+      if [[ -z $pkgName ]]
+      then
+        errorsPresent=1
+        err $errorMissingName
+      fi
+      
+      if [[ -z $pkgPath ]]
+      then
+        errorsPresent=1
+        err $errorMissingPath
+      fi
+      
+      if [[ ${#pkgLangs[@]} -eq 0 ]]
+      then
+        errorsPresent=1
+        err $errorMissingLangs
+      fi
+      
+      if [[ errorsPresent -ne 1 ]]
+      then
+        # Change the current path of the script's environment to the selected path for the package
+        echo "Creating package"
+        cd "$pkgPath"
+        exec
+        echo "Changing current directory to $PWD"
+        
+        # catkin_create_pkg $pkgName `arg_display pkgLangs` ...
+      
+        exit 0
+      fi
+      
     ;;
     "View pkg")
       echo "Current package settings"
@@ -361,8 +409,30 @@ do
       echo "Language support: `arg_display pkgLangs`"
       echo "Path: $pkgPath"
     ;;
-    "Help")
+    "About")
       echo "TODO"
+      printf "
+                                 rosscript v$rosscriptVer
+                            --------------------------
+This script is intended for easing the use of ROS' package creation tool ${bold}catkin_create_pkg${normal}
+It will guide to through the process of creating your very own package. The numbering in the
+selection menu is in a way a recommended way to go through this process though some option can
+be omitted or done in a different order (example: define package name after package version).
+The only exception is ${bold}Create${normal} which requires previous steps to be completed before
+initiating the package creation process
+
+Hope you find it useful and expand your view on the world by using ROS ;)
+
+CHANGELOG:
+${bold}v0.2${normal}
+  - expanded the menu to include additional information required for the package - name, workspace, author etc.
+  - added basic workspace detection in user's hope directory based on ROS_PACKAGE_PATH, .catkin_workspace file and the src directory
+  - improved the workings of the Name menu
+  - fixed language removal menu
+${bold}v0.1${normal}
+  - added the a trimmed-down menu include language selection
+  - added language support management for package with the option to remove selected languages
+"
     ;;
     "Quit")
       echo "Exiting without creating a new package..."
