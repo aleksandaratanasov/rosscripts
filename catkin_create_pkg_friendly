@@ -75,7 +75,8 @@ function add_person() {
 # Each of the variables below will be used when generating the package including populating the package.xml file
 pkgPath=""      # contains the path where the package will be created
 pkgName=""	# contains the name of the package
-pkgVer=""       # contains the version of the package
+pkgVersion=""       # contains the version of the package
+pkgDescription="" # contains the package description
 pkgAuthors=()    # contains "pairs" for each author of the package (name,email address)
 pkgMaintainers=() # contains "pairs" for each maintainer of the package (name,email address)
 pkgLicenses=()  # contains all licenses that the package is under
@@ -273,15 +274,15 @@ do
       #fi
     ;;
     "Version")
-      echo "Enter package version (default: 0.0.1): "
-      read pkgVer
-      if [[ -z $pkgVer ]]
+      #echo "Enter package version (default: 0.0.1): "
+      read -p "Enter package version (default: 0.0.1): " pkgVersion
+      if [[ -z $pkgVersion ]]
       then
-        pkgVer="0.0.1"
+        pkgVersion="0.0.1"
       fi
     ;;
     "Description")
-      echo "TODO"
+      read -d `echo -e "\e"` -p "Enter some text and exit by pressing ESC: " pkgDescription
     ;;
     "Author|Maintainer")
       echo "TODO"
@@ -464,8 +465,10 @@ do
       echo "Current package settings"
       echo "------------------------"
       echo "Name: $pkgName"
+      echo "Version: $pkgVersion"
       echo "Language support: `arg_display pkgLangs`"
       echo "Path: $pkgPath"
+      echo "Description: $pkgDescription"
     ;;
     "About")
       echo "TODO"
