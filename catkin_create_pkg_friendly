@@ -2,8 +2,8 @@
 rosscriptVer="0.2"
 echo "catkin_create_pkg_friendly v$rosscriptVer"
 echo "Author: Aleksandar Vladimirov Atanasov"
-echo "Description: creates a more userfriendly approach when creating ROS packages using catkin_create_pkg"
-echo "Note: Complete  the tutorial for setting the ROS environment or at least make sure rospack is added to PATH"
+echo "Description: Creates a more userfriendly approach when creating ROS packages using catkin_create_pkg"
+echo "Warning: In order to use this script you have to have set up your ROS environment. Please visit http://wiki.ros.org/ROS/Tutorials/InstallingandConfiguringROSEnvironment for more information"
 echo "The numbering of the menu items is the suggested order of filling the information for the package."
 
 # Text formatting
@@ -145,7 +145,7 @@ do
         
         if ! [[ -e "$tmpPkgPath/.catkin_workspace" && -d "$tmpPkgPath/src" ]]
         then
-          echo "It appears that you have selected a path which is not a valid (missing \".catkin_workspace\" file and \"src\" subdirectory). Accept anyway?"
+          echo "It appears that you have selected a path which is not a valid ROS workspace (missing \".catkin_workspace\" file and \"src\" subdirectory). Accept anyway?"
           select confirm in "Accept" "Cancel"
           do
             case $confirm in
@@ -166,11 +166,10 @@ do
       
       if [[ "$skipWsChoice" -eq "0" ]]
       then
-        select ws in "${validRosWsPaths[@]}" $pkgPath "Other" "Accept" "Cancel"
-        do
+        select ws in "${validRosWsPaths[@]}" $pkgPath "Other" "Accept" "Cancel" #show pkgPath as menu item only if not present in validRosWsPaths
           if [[ $ws == "Other" ]] # offer the user a chance to specify a path manually (especially useful if the detection didn't work out)
           then
-            printf "Enter a path to a valid workspace: "
+            printf "Enter a path to the root directory of a valid workspace: "
             read tmpPkgPath
             
             if ! [[ -e "$tmpPkgPath/.catkin_workspace" && -d "$tmpPkgPath/src" ]]
@@ -182,7 +181,7 @@ do
                   "Accept")
                     skipWsChoice=1
                     pkgPath=$tmpPkgPath
-                    echo "Package will be created in $pkgPath"
+                    #echo "Package will be created in $pkgPath"
                     break
                   ;;
                   "Cancel")
@@ -208,7 +207,7 @@ do
             break
           else
             pkgPath=$ws
-            echo "Package will be created in $pkgPath"
+            #echo "Package will be created in $pkgPath"
           fi
         done
       fi
@@ -451,11 +450,11 @@ do
       then
         # Change the current path of the script's environment to the selected path for the package
         echo "Creating package"
+        echo "Changing directory to $pkgPath"
         cd "$pkgPath"
         exec
-        echo "Changing current directory to $PWD"
         
-        # catkin_create_pkg $pkgName `arg_display pkgLangs` ...
+        #catkin_create_pkg $pkgName `arg_display pkgLangs` ...
       
         exit 0
       fi
