@@ -43,7 +43,7 @@ function arg_display () {
 }
 
 function add_person() {
-  declare -a person=()
+  person=()
   
   # Split the input parameters in head and tail with tail being the very last argument
   # This allows using spaces in the name. The email address is not supposed to contain any spaces
@@ -140,12 +140,12 @@ do
       then
         echo "Unable to detect any valid ROS workspaces in \"$HOME\". Please specify the path manually"
         echo "Example: $HOME/catkin_ws"
-        printf "Enter workspace root directory: "
+        printf "Enter workspace root directory (without the \"src\" subdirectory attached to the path): "
         read tmpPkgPath
         
         if ! [[ -e "$tmpPkgPath/.catkin_workspace" && -d "$tmpPkgPath/src" ]]
         then
-          echo "It appears that you have selected a path which is not a valid ROS workspace (missing \".catkin_workspace\" file and \"src\" subdirectory). Accept anyway?"
+          echo "It appears that you have selected a path which does not point to a valid ROS workspace (missing \".catkin_workspace\" file and \"src\" subdirectory). Accept anyway?"
           select confirm in "Accept" "Cancel"
           do
             case $confirm in
@@ -167,6 +167,7 @@ do
       if [[ "$skipWsChoice" -eq "0" ]]
       then
         select ws in "${validRosWsPaths[@]}" $pkgPath "Other" "Accept" "Cancel" #show pkgPath as menu item only if not present in validRosWsPaths
+        do
           if [[ $ws == "Other" ]] # offer the user a chance to specify a path manually (especially useful if the detection didn't work out)
           then
             printf "Enter a path to the root directory of a valid workspace: "
@@ -331,8 +332,9 @@ do
       then
         echo "Consider choosing the tasks you want your package to do since some tasks maybe requiring a specific language"
       fi
-      
-      declare -a langOptions=("C++" "Python" "Java" "JS" "C#" "Remove" "Accept" "Cancel")
+
+      pkgLangsBackup=("${pkgLangs[@]}")
+      langOptions=("C++" "Python" "Java" "JS" "C#" "Remove" "Accept" "Cancel")
       select lang in "${langOptions[@]}"
       do
         case $lang in
@@ -381,7 +383,7 @@ do
             #echo "NOT WORKING PROPERLY!!! For some reason only the first if-statement is executed and then we exit the select loop for removing languages"
             echo "Currently the package will support following languages: "
             arg_display pkgLangs
-            declare -a pkgLangsBackup="${pkgLangs[@]}"
+            pkgLangsBackup2=("${pkgLangs[@]}")
             #echo "BACKUP: ${pkgLangs[@]}"
             select pkgLang in "${pkgLangs[@]}" "Accept" "Cancel"
             do
@@ -392,7 +394,7 @@ do
               elif [[ "$pkgLang" == "Cancel" ]]
               then
                 echo "Changes have been cancelled"
-                pkgLangs=( $pkgLangsBackup )
+                pkgLangs=("${pkgLangsBackup2[@]}")
                 break
               else
                 echo "Removed $pkgLang from supported languages"
@@ -406,7 +408,8 @@ do
             break
           ;;
           "Cancel")
-            echo "TODO"
+            pkgLangs=("${pkgLangsBackup[@]}")
+            break
           ;;
           *)
             err $errorSelection
@@ -416,6 +419,27 @@ do
     ;;
     "Tasks")
       echo "TODO"
+      taskOptions=("Image processing" "Custom messaging" "GUI development")
+      select pkgTask in "${taskOptions[@]}"  "Remove" "Accept" "Cancel"
+      do
+        case $pkgTask in
+          "Image processing")
+            echo "Dependencies: "
+            echo "Allows processing of image data using ROS image including conversion from other formats such as CvMat (OpenCV)"
+            pkgTasks=("imgproc")
+          ;;
+          "Custom messaging")
+            echo "Dependencies: "
+            echo "Allows creation of user-defined messages"
+            pkgTasks=("custmsg")
+          ;;
+          "GUI development")
+            echo "Dependencies: "
+            echo "Allows creation of simple to very complex user interfaces using Rqt"
+            pkgTasks=("rqt")
+          ;;
+        esac
+      done
       # display a set of tasks each bound to one or more ROS dependencies
       # if dependencies are not met, offer the user the choice to install (if he/she chooses not to do so, remove task along with dependencies)
     ;;
